@@ -58,7 +58,7 @@ def uncompress_nparr(bytestring):
 
 @app.route("/login", methods=['POST'])
 def login_handler():
-    print("Got Predict request from: " + request.remote_addr)
+    print("Got Login request from: " + request.remote_addr)
 
     request_body = request.get_json()
 
