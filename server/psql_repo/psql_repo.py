@@ -20,3 +20,10 @@ def add_research_log(db: Session, log: ResearchLog):
     db.add(log)
     db.commit()
     db.refresh(log)
+
+def get_researches(db: Session, user_id: int) -> (list[Research], bool):
+    researches = db.query(Research).filter(Research.user_id == user_id).all()
+    if researches == None:
+        return [], False
+
+    return researches, True

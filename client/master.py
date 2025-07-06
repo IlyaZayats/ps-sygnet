@@ -26,6 +26,15 @@ class Master(QObject):
     parts_worker = []
     index_worker = 0
 
+    def get_researches(self, user_id):
+        get_researches_file_string = ""
+        get_researches_response = requests.post(self.url + "/get_researches", data={'user_id': user_id}, headers={'Content-Type': 'application/json'})
+        if get_researches_response.status_code == 200:
+            data = get_researches_response.json()
+            get_researches_file_string = data['csv']
+
+        return get_researches_file_string
+
     def make_img(self, num_rows, width, height, data, map, name):
         data, map = np.rot90(np.array(data)), np.rot90(np.array(map))
         data, map = np.transpose(data), np.transpose(map)
