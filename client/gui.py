@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import shutil
 import sys
@@ -10,7 +11,7 @@ from matplotlib import pyplot as plt
 from tensorflow.python import keras
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget, QFileDialog, QLabel, QGridLayout, \
     QGroupBox, QListWidget, QListWidgetItem, QProgressBar, QListView, QLineEdit, QTableWidget, QHeaderView, \
-    QTableWidgetItem, QScrollArea, QDialog, QHBoxLayout, QVBoxLayout
+    QTableWidgetItem, QScrollArea, QDialog, QHBoxLayout, QVBoxLayout, QMessageBox
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from tensorflow import keras
@@ -100,8 +101,8 @@ class Master(QObject):
     work_to_worker = pyqtSignal(int, list)
     progress_master = pyqtSignal()
     completed_master = pyqtSignal(list)
-    url = os.getenv('SERVER_HOST')
     # url = "http://127.0.0.1:5000"
+    url = os.getenv('SERVER_HOST')
 
 
     predict_update = pyqtSignal(int, list)
@@ -146,12 +147,6 @@ class Master(QObject):
     def get_by_file(self, file):
         grad, prediction = None, -1
         scan = self.compress_nparr(file)
-        gradcam_response = requests.post(self.url+"/login", data=scan, headers={'Content-Type': 'application/octet-stream'})
-        if gradcam_response.status_code == 200:
-            data = gradcam_response.content
-            grad = self.uncompress_nparr(data)
-        else:
-            return grad,prediction
         predict_response = requests.post(self.url+"/predict", data=scan, headers={'Content-Type': 'application/octet-stream'} )
         if predict_response.status_code == 200:
             data = predict_response.json()
@@ -217,7 +212,7 @@ class MainWindow(QMainWindow):
     work_to_master = pyqtSignal(list)
     start_predict = pyqtSignal(list)
 
-    def __init__(self):
+    def __init__(self, user_id: int):
         super().__init__()
 
         if os.path.exists("temp"):
@@ -506,10 +501,54 @@ class MainWindow(QMainWindow):
         self.master_thread.exit()
         self.selectButton.setEnabled(True)
 
+
+class LoginDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Авторизация")
+        self.setFixedSize(300, 150)
+
+        self.username_input = QLineEdit(self)
+        self.username_input.setPlaceholderText("Логин")
+        self.password_input = QLineEdit(self)
+        self.password_input.setPlaceholderText("Пароль")
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+
+        self.login_button = QPushButton("Войти", self)
+        self.login_button.clicked.connect(self.check_credentials)
+
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Введите логин и пароль"))
+        layout.addWidget(self.username_input)
+        layout.addWidget(self.password_input)
+        layout.addWidget(self.login_button)
+        self.setLayout(layout)
+
+        self.url = os.getenv('SERVER_HOST')
+        self.valid = False
+        self.user_id = -1
+
+    def check_credentials(self):
+        username = self.username_input.text()
+        password = self.password_input.text()
+
+        login_response = requests.post(self.url+"/login", data={"login": username, "password": password})
+        if login_response.status_code == 200:
+            response = json.load(login_response.json())
+            self.user_id = response["user_id"]
+            self.valid = True
+            self.accept()
+        else:
+            QMessageBox.warning(self, "Ошибка", "Неверный логин или пароль")
+
+
 app = QApplication(sys.argv)
 
-window = MainWindow()
-window.setMinimumSize(1000, 600)
-window.show()
-
-app.exec()
+login_dialog = LoginDialog()
+if login_dialog.exec() == QDialog.DialogCode.Accepted and login_dialog.valid:
+    window = MainWindow(login_dialog.user_id)
+    window.setMinimumSize(1000, 600)
+    window.show()
+    app.exec()
+else:
+    sys.exit(0)
