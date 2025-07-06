@@ -21,7 +21,7 @@ from predict.sygmentation import get_heatmap
 from psql_repo.psql_repo import login
 from s3_repo.s3_repo import S3Adapter
 from server.psql_repo.models import Research
-from server.psql_repo.psql_repo import add_research, get_researches
+from server.psql_repo.psql_repo import add_research
 
 app = Flask(__name__)
 
