@@ -122,26 +122,3 @@ def predict_handler():
         "prediction": prediction,
         "sygmentation_mask": sygmentation_mask,
     }
-
-@app.route("/get_researches", methods=['POST'])
-def login_handler():
-    print("Got Predict request from: " + request.remote_addr)
-
-    request_body = request.get_json()
-
-    researches, ok = get_researches(db, request_body['user_id'])
-    if not ok:
-        return {
-            "status":http.HTTPStatus.BAD_REQUEST,
-            "message":f"User with {request_body['user_id']} user_id does not exist"
-        }
-
-    csv_string = "research_id,user_id,classification_bin_new,classification_bin_old,file_path,create_dt,update_dt\n"
-    for research in researches:
-        csv_string += f'{research.research_id},{research.user_id},{research.classification_bin_new},{research.classification_bin_old},{research.file_path},{research.create_dt},{research.update_dt}\n'
-
-
-    return {
-        "status":http.HTTPStatus.OK,
-        "csv":csv_string,
-    }
